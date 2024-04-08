@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image | Uploader | App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+  <style>
+    body {
+      --background-color: #18181B;
+      --text-color: #ffbb00;
+      --blur-opacity: .01;
+
+      &.light {
+        --background-color: #dbdbdb;
+        --text-color: #000000;
+        --blur-opacity: .1;
+      }
+
+      &.toggle .grid * {
+        transition-duration: 0s !important;
+      }
+    }
+
+    .day-night {
+      cursor: pointer;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      opacity: .3;
+
+      input {
+        display: none;
+
+        &+div {
+          border-radius: 50%;
+          width: 50px;
+          height: 45px;
+          position: relative;
+          box-shadow: inset 8px -8px 0 0 var(--text-color);
+          transform: scale(1) rotate(-2deg);
+          transition: box-shadow .5s ease 0s, transform .4s ease .1s;
+
+          &:before {
+            content: '';
+            width: inherit;
+            height: inherit;
+            border-radius: inherit;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: background-color .3s ease;
+          }
+
+          &:after {
+            content: '';
+            width: 50px;
+            height: 45px;
+            border-radius: 50%;
+            margin: -9px 0 0 -13px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            box-shadow: 0 -23px 0 var(--text-color), 0 23px 0 var(--text-color), 23px 0 0 var(--text-color), -23px 0 0 var(--text-color), 15px 15px 0 var(--text-color), -15px 15px 0 var(--text-color), 15px -15px 0 var(--text-color), -15px -15px 0 var(--text-color);
+            transform: scale(0);
+            transition: all .3s ease;
+          }
+        }
+
+        &:checked+div {
+          box-shadow: inset 20px -20px 0 0 var(--text-color);
+          transform: scale(.5) rotate(0deg);
+          transition: transform .3s ease .1s, box-shadow .2s ease 0s;
+
+          &:before {
+            background: var(--text-color);
+            transition: background-color .3s ease .1s;
+          }
+
+          &:after {
+            transform: scale(1);
+            transition: transform .5s ease .15s;
+          }
+        }
+      }
+    }
+
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      font-family: 'Inter', Arial;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--background-color);
+      overflow: hidden;
+
+      &:before {
+        content: '';
+        position: absolute;
+        inset: 0 -60% 65% -60%;
+        background-image: radial-gradient(ellipse at top, #10B981 0%, var(--background-color) 50%);
+        opacity: var(--blur-opacity);
+      }
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Include Bootstrap CSS if you're not using it already -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.css"
+    integrity="sha512-3pIirOrwegjM6erE5gPSwkUzO+3cTjpnV9lexlNZqvupR64iZBnOOTiiLPb9M36zpMScbmUNIcHUqKD47M719g=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Include jQuery if you're not using it already -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <!-- Include Toastr JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"
+    integrity="sha512-VEd+nq25CkR676O+pLBnDW09R7VQX9Mdiij052gVCp5yVH3jGtH70Ho/UUv4mJDsEdTvqRCFZg0NKGiojGnUCw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+
+
+  <div class="grid justify-content-md-center">
+    {% if messages %}
+    <div class="container">
+      {% for message in messages %}
+      <div
+        class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% endif %} alert-dismissible fade show"
+        role="alert">
+        <strong>Hey!</strong> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container" id="showmessage" style="display: none;">
+      <center>
+        <h2 style="color: rgb(0, 255, 128);"> <b>Click the button and go back.</b></h2>
+        <div class="d-grid gap-2">
+          <button class="btn btn-warning mt-3" onClick="refreshPage()">
+            <i class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Go Back</span></button>
+        </div>
+      </center>
+    </div>
+
+    <div class="container " id="initialContent">
+      <center>
+        <div class="card" style="width: 35rem; height: 12rem;">
+          <div class="card-body mt-1">
+            <h3><b>Welcome to Steganography</b></h3>
+            <div class="row mt-5">
+              <div class="col">
+                <button id="exitBtn" class="btn btn-danger">
+                  <i class="fa-solid fa-circle-xmark"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="text">Exit</span></button>
+                <button id="continueBtn" class="btn btn-info"><i
+                    class="fa-solid fa-angles-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="text">Continue</span></button>
+              </div>
+            </div>
+          </div>
+      </center>
+    </div>
+
+    <div class="container" id="SelectContents" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body mt-1">
+            <h3><b>Select one between the three</b></h3>
+            <div class="row mt-5">
+              <div class="col">
+                <button id="imageup" class="btn btn-warning"><i
+                    class="fa-solid fa-image"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Image</span></button>
+                <button id="textup" class="btn btn-info"><i
+                    class="fa-solid fa-file-lines"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Text</span></button>
+                <button id="audioup" class="btn btn-primary"><i
+                    class="fa-solid fa-file-audio"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Audio</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <button id="backSelectContents" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- Select Image Unmerge or Merge -->
+    <div class="container" id="image_mer_unmer" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body mt-1">
+            <h3><b>You can Select between</b></h3>
+            <div class="row mt-5">
+              <div class="col">
+                <button id="mergeBtn" class="btn btn-danger"><i
+                    class="fa-solid fa-code-merge"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Merge</span></button>
+                <button id="unmergeBtn" class="btn btn-info"><i
+                    class="fa-solid fa-link-slash"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="text">Unmerge</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_image_mer_unmer" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Merge Image Form -->
+    <div class="container" id="uploadImagedoubleContent" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body">
+            <form method="post" action="{% url 'upload_merge_image' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <h5><b>Upload Merge Image:</b></h5>
+              <div class="row">
+                <div class="col">
+                  <label for="coverFile"><b>Cover Image:</b></label>
+                  <input type="hidden" name="cover" value="cover">
+                  <input type="file" name="coverimg" id="coverFile" class="form-control" accept="image/png, image/jpeg">
+                </div>
+                <div class="col">
+                  <label for="secretFile"><b>Secret Image:</b></label>
+                  <input type="hidden" name="secret" value="secret">
+                  <input type="file" name="secretimg" id="secretFile" class="form-control"
+                    accept="image/png, image/jpeg">
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col">
+                  <button class="btn btn-primary" type="submit" name="submit"><i
+                      class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                      class="text">Merge</span></button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_uploadImagedoubleContent" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- Unmerge Image Form -->
+    <div class="container" id="uploadImageContent" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body mb-2">
+            <form id="uploadForm" enctype="multipart/form-data">
+              <h5><b>Upload Unmerge Image:</b></h5>
+              <div class="row">
+                <div class="col">
+                  <input class="form-control" type="file" id="UnmergeSplitFile" accept="image/png, image/jpeg">
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col">
+                  <button type="button" id="submitBtn" class="btn btn-primary"><i
+                      class="far fa-save"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Unmerge</span></button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_uploadImageContent" class="btn btn-secondary"><i
+                class="fas fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Display Split Images -->
+    <div class="container" id="splitImages" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <div class="row justify-content-center">
+              <div class="col text-center">
+                <div id="imageContainer" class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <img id="firstPart" style="width: 30%; height: auto;">
+                    <a class="btn btn-info btn-sm mt-2 mb-2" id="downloadFirst" download="first_part.png"
+                      style="display: block;">Download First Part</a>
+                  </div>
+                  <div>
+                    <img id="secondPart" style="width: 30%; height: auto;">
+                    <a class="btn btn-info btn-sm mt-2" id="downloadSecond" download="second_part.png"
+                      style="display: block;">Download Second Part</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <a href="/"><button class="btn btn-secondary"><i class="fas fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="text">Home</span></button></a>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+
+    <!-- UnMerge Image Script Start -->
+    <script>
+      document.getElementById('submitBtn').addEventListener('click', function () {
+        var fileInput = document.getElementById('UnmergeSplitFile');
+        var file = fileInput.files[0];
+
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var img = new Image();
+          img.onload = function () {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width / 2; // Split the image in half
+            canvas.height = img.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, img.width / 2, img.height, 0, 0, img.width / 2, img.height);
+            var firstPart = canvas.toDataURL('image/png');
+
+            var secondCanvas = document.createElement('canvas');
+            secondCanvas.width = img.width / 2;
+            secondCanvas.height = img.height;
+            var secondCtx = secondCanvas.getContext('2d');
+            secondCtx.drawImage(img, img.width / 2, 0, img.width / 2, img.height, 0, 0, img.width / 2, img.height);
+            var secondPart = secondCanvas.toDataURL('image/png');
+
+            document.getElementById('firstPart').src = firstPart;
+            document.getElementById('downloadFirst').href = firstPart;
+            document.getElementById('secondPart').src = secondPart;
+            document.getElementById('downloadSecond').href = secondPart;
+
+            document.getElementById('uploadImageContent').style.display = 'none';
+            document.getElementById('splitImages').style.display = 'block';
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('backToUpload').addEventListener('click', function () {
+        document.getElementById('uploadImageContent').style.display = 'block';
+        document.getElementById('splitImages').style.display = 'none';
+      });
+
+
+    </script>
+    <!-- UnMerge Image Script End -->
+
+    <!-- Select Text Unmerge or Merge -->
+    <div class="container" id="text_mer_unmer" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body mt-1">
+            <h3><b>You can Select between</b></h3>
+            <div class="row mt-5">
+              <div class="col">
+                <button id="textmergeBtn" class="btn btn-danger"><i
+                    class="fa-solid fa-code-merge"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Merge</span></button>
+                <button id="textunmergeBtn" class="btn btn-info"><i
+                    class="fa-solid fa-link-slash"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="text">Unmerge</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_text_mer_unmer" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Merge Text Form -->
+    <div class="container" id="uploadTextMergeContent" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body">
+            <form method="post" action="{% url 'upload_merge_text' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <h5><b>Upload Merge Text:</b></h5>
+              <div class="row">
+                <div class="col">
+                  <label for="coverFile"><b>Cover Text:</b></label>
+                  <input type="hidden" name="cover" value="cover">
+                  <input type="file" name="coverimg" id="coverFile" class="form-control"
+                    accept=".txt, .doc, .docx, .pdf">
+                </div>
+                <div class="col">
+                  <label for="secretFile"><b>Secret Text:</b></label>
+                  <input type="hidden" name="secret" value="secret">
+                  <input type="file" name="secretimg" id="secretFile" class="form-control" accept=".txt">
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col">
+                  <button class="btn btn-primary" type="submit" name="submit"><i
+                      class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                      class="text">Merge</span></button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_uploadTextMergeContent" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- Unmerge Text Form -->
+    <div class="container" id="uploadTextUnmergeContent" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <form id="uploadFormText" enctype="multipart/form-data">
+              <h5><b>Upload Unmerge Text File:</b></h5>
+              <input type="file" id="unmergetextsplitFile" class="form-control" accept=".txt">
+              <div class="row mt-2">
+                <div class="col">
+                  <button type="button" id="unmergesubmitBtn" class="btn btn-primary"><i
+                      class="far fa-save"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Unmerge</span></button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_uploadTextUnmergeContent" class="btn btn-secondary"><i
+                class="fas fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Display Split Text -->
+    <div class="container" id="splitText" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <h5><b>Unmerge Text File:</b></h5>
+            <div id="textContainer">
+              <embed id="firstPartEmbed" src="" width="500" height="100" type="text/plain">
+              <a id="firstPartTextLink" class="btn btn-info btn-sm mt-2" style="display: block;">Download First
+                Part</a>
+              <embed id="secondPartEmbed" src="" width="500" height="100" type="text/plain">
+              <a id="secondPartTextLink" class="btn btn-info btn-sm mt-2" style="display: block;">Download Second
+                Part</a>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <a href="/"><button class="btn btn-secondary"><i
+                  class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Home</span></button></a>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- UnMerge Text Script Start -->
+    <script>
+      document.getElementById('unmergesubmitBtn').addEventListener('click', function () {
+        var fileInput = document.getElementById('unmergetextsplitFile');
+        var file = fileInput.files[0];
+
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var text = event.target.result;
+          var length = text.length;
+          var mid = Math.floor(length / 2);
+          var firstPart = text.substring(0, mid);
+          var secondPart = text.substring(mid);
+
+          var firstBlob = new Blob([firstPart], { type: 'text/plain' });
+          var secondBlob = new Blob([secondPart], { type: 'text/plain' });
+
+          var firstPartURL = URL.createObjectURL(firstBlob);
+          var secondPartURL = URL.createObjectURL(secondBlob);
+
+          var firstPartEmbed = document.getElementById('firstPartEmbed');
+          var secondPartEmbed = document.getElementById('secondPartEmbed');
+
+          firstPartEmbed.src = firstPartURL;
+          secondPartEmbed.src = secondPartURL;
+
+          var firstPartLink = document.getElementById('firstPartTextLink');
+          var secondPartLink = document.getElementById('secondPartTextLink');
+
+          firstPartLink.href = firstPartURL;
+          firstPartLink.download = 'first_part.txt';
+
+          secondPartLink.href = secondPartURL;
+          secondPartLink.download = 'second_part.txt';
+
+          document.getElementById('uploadTextUnmergeContent').style.display = 'none';
+          document.getElementById('splitText').style.display = 'block';
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById('backToUpload').addEventListener('click', function () {
+        document.getElementById('uploadTextUnmergeContent').style.display = 'block';
+        document.getElementById('splitText').style.display = 'none';
+      });
+
+
+    </script>
+    <!-- UnMerge Text Script End -->
+    <!-- Select Audio Unmerge or Merge -->
+    <div class="container" id="audio_mer_unmer" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body mt-1">
+            <h3><b>You can Select between</b></h3>
+            <div class="row mt-5">
+              <div class="col">
+                <button id="audiomergeBtn" class="btn btn-danger"><i
+                    class="fa-solid fa-code-merge"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Merge</span></button>
+                <!-- <button id="audiounmergeBtn" class="btn btn-info"><i
+                    class="fa-solid fa-link-slash"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                    class="text">Unmerge</span></button> -->
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_audio_mer_unmer" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Upload Audio Merge Form -->
+    <div class="container" id="uploadAudioMerge" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <form id="mergeaudioForm">
+              <h5><b>Upload Merge Audio:</b></h5>
+              <div class="row">
+                <div class="col">
+                  <label for="coverFile"><b>Cover:</b></label>
+                  <input type="file" name="coverimg" id="AudiocoverFile" class="form-control" accept=".mp3">
+                </div>
+                <div class="col">
+                  <label for="secretFile"><b>Secret:</b></label>
+                  <input type="file" name="secretimg" id="AudiosecretFile" class="form-control" accept=".mp3">
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col">
+                  <button id="mergeButton" class="btn btn-primary" type="submit"><i
+                      class="fa-regular fa-floppy-disk"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                      class="text">Merge</span></button>
+                  <p id="mergeMessage" style="display: none;">Please wait...</p>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-left">
+            <button id="back_uploadAudioMerge" class="btn btn-secondary"><i
+                class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- Download Merge Audio -->
+    <div class="container" id="downloadmergeaudio" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col">
+                <h3><b>Download Merge Audio:</b></h3>
+                <audio controls id="mergedAudio"></audio>
+                <a class="btn btn-warning mt-5" id="downloadLink" download><i
+                    class="fa-solid fa-image"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Download</span></a>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <a href="/"><button class="btn btn-secondary"><i
+                  class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Home</span></button></a>
+          </div>
+        </div>
+      </center>
+    </div>
+
+    <!-- Merge Audio Script Start -->
+    <script>
+      document.getElementById('mergeaudioForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var coverFile = document.getElementById('AudiocoverFile').files[0];
+        var secretFile = document.getElementById('AudiosecretFile').files[0];
+
+        if (!coverFile || !secretFile) {
+          alert('Please select both audio files');
+          return;
+        }
+
+        var reader1 = new FileReader();
+        reader1.onload = function (event) {
+          var coverData = event.target.result;
+
+          var reader2 = new FileReader();
+          reader2.onload = function (event) {
+            var secretData = event.target.result;
+
+            var mergedData = mergeAudio(coverData, secretData);
+
+            var blob = new Blob([mergedData], { type: 'audio/mpeg' });
+            var url = URL.createObjectURL(blob);
+
+            var audioElement = document.getElementById('mergedAudio');
+            audioElement.src = url;
+            audioElement.play();
+
+            var downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url;
+            downloadLink.style.display = 'block';
+
+            document.getElementById('uploadAudioMerge').style.display = 'none';
+            document.getElementById('downloadmergeaudio').style.display = 'block';
+          };
+          reader2.readAsArrayBuffer(secretFile);
+        };
+        reader1.readAsArrayBuffer(coverFile);
+      });
+
+      function mergeAudio(audio1, audio2) {
+        var buffer1 = new Uint8Array(audio1);
+        var buffer2 = new Uint8Array(audio2);
+
+        var mergedBuffer = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+        mergedBuffer.set(buffer1, 0);
+        mergedBuffer.set(buffer2, buffer1.byteLength);
+
+        return mergedBuffer;
+      }
+
+      document.getElementById('back_uploadAudioMerge').addEventListener('click', function () {
+        document.getElementById('uploadAudioMerge').style.display = 'block';
+        document.getElementById('downloadmergeaudio').style.display = 'none';
+      });
+
+    </script>
+    <!-- Merge Audio Script End -->
+
+
+
+
+    <!-- Unmerge Audio Form -->
+    <div class="container" id="uploadAudioUnmerge" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem; height: 15rem;">
+          <div class="card-body mb-2">
+            <form method="post" action="{% url 'upload_unmerge_audio' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <h5><b>Upload Audio to Split:</b></h5>
+              <input type="file" name="audio_file" class="form-control" accept=".mp3">
+              <button class="btn btn-primary mt-2" type="submit" name="submit"><i class="fa-regular fa-upload"></i>
+                Upload</button>
+            </form>
+          </div>
+        </div>
+        <div class="card-footer text-left">
+          <button id="back_uploadAudioUnmerge" class="btn btn-secondary"><i
+              class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+        </div>
+      </center>
+    </div>
+
+  </div>
+
+  <label class="day-night">
+    <input type="checkbox" checked />
+    <div></div>
+  </label>
+
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      function handleSaveButtonClick1(event) {
+        var inputFile = document.getElementById("coverFile");
+
+        if (inputFile.files.length === 0) {
+          alert("Please select a image before saving.");
+          event.preventDefault();
+        }
+      }
+
+      function handleSaveButtonClick2(event) {
+        var inputFile = document.getElementById("unmer");
+
+        if (inputFile.files.length === 0) {
+          alert("Please select a image before saving.");
+          event.preventDefault();
+        }
+      }
+      var saveButton1 = document.querySelector("#uploadImagedoubleContent button[name='submit']");
+      var saveButton2 = document.querySelector("#uploadImageContent button[name='submit']");
+
+      saveButton1.addEventListener("click", handleSaveButtonClick1);
+      saveButton2.addEventListener("click", handleSaveButtonClick2);
+    });
+
+    function refreshPage() {
+      location.reload();
+    }
+  </script>
+
+  <!-- Audio Upload Script -->
+  <script>
+    document.getElementById("audioup").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "none";
+      document.getElementById("audio_mer_unmer").style.display = "block";
+    });
+
+
+    document.getElementById("back_audio_mer_unmer").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "block";
+      document.getElementById("audio_mer_unmer").style.display = "none";
+    });
+
+    document.getElementById("audiomergeBtn").addEventListener("click", function () {
+      document.getElementById("audio_mer_unmer").style.display = "none";
+      document.getElementById("uploadAudioMerge").style.display = "block";
+    });
+
+    document.getElementById("back_uploadAudioMerge").addEventListener("click", function () {
+      document.getElementById("audio_mer_unmer").style.display = "block";
+      document.getElementById("uploadAudioMerge").style.display = "none";
+    });
+
+    document.getElementById("audiounmergeBtn").addEventListener("click", function () {
+      document.getElementById("audio_mer_unmer").style.display = "none";
+      document.getElementById("uploadAudioUnmerge").style.display = "block";
+    });
+
+    document.getElementById("back_uploadAudioUnmerge").addEventListener("click", function () {
+      document.getElementById("audio_mer_unmer").style.display = "block";
+      document.getElementById("uploadAudioUnmerge").style.display = "none";
+    });
+  </script>
+
+  <!-- Text Upload Script -->
+  <script>
+    document.getElementById("textup").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "none";
+      document.getElementById("text_mer_unmer").style.display = "block";
+    });
+
+
+    document.getElementById("back_text_mer_unmer").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "block";
+      document.getElementById("text_mer_unmer").style.display = "none";
+    });
+
+    document.getElementById("textmergeBtn").addEventListener("click", function () {
+      document.getElementById("text_mer_unmer").style.display = "none";
+      document.getElementById("uploadTextMergeContent").style.display = "block";
+    });
+
+    document.getElementById("back_uploadTextMergeContent").addEventListener("click", function () {
+      document.getElementById("text_mer_unmer").style.display = "block";
+      document.getElementById("uploadTextMergeContent").style.display = "none";
+    });
+
+    document.getElementById("textunmergeBtn").addEventListener("click", function () {
+      document.getElementById("text_mer_unmer").style.display = "none";
+      document.getElementById("uploadTextUnmergeContent").style.display = "block";
+    });
+
+    document.getElementById("back_uploadTextUnmergeContent").addEventListener("click", function () {
+      document.getElementById("text_mer_unmer").style.display = "block";
+      document.getElementById("uploadTextUnmergeContent").style.display = "none";
+    });
+  </script>
+
+  <!-- Image Upload Script -->
+  <script>
+    document.getElementById("exitBtn").addEventListener("click", function () {
+      document.getElementById("initialContent").style.display = "none";
+      document.getElementById("showmessage").style.display = "block";
+    });
+
+    document.getElementById("continueBtn").addEventListener("click", function () {
+      document.getElementById("initialContent").style.display = "none";
+      document.getElementById("SelectContents").style.display = "block";
+    });
+
+    document.getElementById("backSelectContents").addEventListener("click", function () {
+      document.getElementById("initialContent").style.display = "block";
+      document.getElementById("SelectContents").style.display = "none";
+    });
+
+    document.getElementById("imageup").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "none";
+      document.getElementById("image_mer_unmer").style.display = "block";
+    });
+
+
+    document.getElementById("back_image_mer_unmer").addEventListener("click", function () {
+      document.getElementById("SelectContents").style.display = "block";
+      document.getElementById("image_mer_unmer").style.display = "none";
+    });
+
+    document.getElementById("mergeBtn").addEventListener("click", function () {
+      document.getElementById("image_mer_unmer").style.display = "none";
+      document.getElementById("uploadImagedoubleContent").style.display = "block";
+    });
+
+    document.getElementById("back_uploadImagedoubleContent").addEventListener("click", function () {
+      document.getElementById("image_mer_unmer").style.display = "block";
+      document.getElementById("uploadImagedoubleContent").style.display = "none";
+    });
+
+    document.getElementById("unmergeBtn").addEventListener("click", function () {
+      document.getElementById("image_mer_unmer").style.display = "none";
+      document.getElementById("uploadImageContent").style.display = "block";
+    });
+
+    document.getElementById("back_uploadImageContent").addEventListener("click", function () {
+      document.getElementById("image_mer_unmer").style.display = "block";
+      document.getElementById("uploadImageContent").style.display = "none";
+    });
+  </script>
+
+
+  <script>
+
+    document.querySelector(".day-night input").addEventListener("change", () => {
+      document.querySelector("body").classList.add("toggle");
+      setTimeout(() => {
+        document.querySelector("body").classList.toggle("light");
+
+        setTimeout(
+          () => document.querySelector("body").classList.remove("toggle"),
+          10
+        );
+      }, 5);
+    });
+
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

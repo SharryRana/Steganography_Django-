@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image | Uploader | App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+    <style>
+        body {
+            --background-color: #18181B;
+            --text-color: #ffbb00;
+            --blur-opacity: .01;
+
+            &.light {
+                --background-color: #dbdbdb;
+                --text-color: #000000;
+                --blur-opacity: .1;
+            }
+
+            &.toggle .grid * {
+                transition-duration: 0s !important;
+            }
+        }
+
+        .day-night {
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            opacity: .3;
+
+            input {
+                display: none;
+
+                &+div {
+                    border-radius: 50%;
+                    width: 50px;
+                    height: 45px;
+                    position: relative;
+                    box-shadow: inset 8px -8px 0 0 var(--text-color);
+                    transform: scale(1) rotate(-2deg);
+                    transition: box-shadow .5s ease 0s, transform .4s ease .1s;
+
+                    &:before {
+                        content: '';
+                        width: inherit;
+                        height: inherit;
+                        border-radius: inherit;
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        transition: background-color .3s ease;
+                    }
+
+                    &:after {
+                        content: '';
+                        width: 50px;
+                        height: 45px;
+                        border-radius: 50%;
+                        margin: -9px 0 0 -13px;
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        box-shadow: 0 -23px 0 var(--text-color), 0 23px 0 var(--text-color), 23px 0 0 var(--text-color), -23px 0 0 var(--text-color), 15px 15px 0 var(--text-color), -15px 15px 0 var(--text-color), 15px -15px 0 var(--text-color), -15px -15px 0 var(--text-color);
+                        transform: scale(0);
+                        transition: all .3s ease;
+                    }
+                }
+
+                &:checked+div {
+                    box-shadow: inset 20px -20px 0 0 var(--text-color);
+                    transform: scale(.5) rotate(0deg);
+                    transition: transform .3s ease .1s, box-shadow .2s ease 0s;
+
+                    &:before {
+                        background: var(--text-color);
+                        transition: background-color .3s ease .1s;
+                    }
+
+                    &:after {
+                        transform: scale(1);
+                        transition: transform .5s ease .15s;
+                    }
+                }
+            }
+        }
+
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            font-family: 'Inter', Arial;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--background-color);
+            overflow: hidden;
+
+            &:before {
+                content: '';
+                position: absolute;
+                inset: 0 -60% 65% -60%;
+                background-image: radial-gradient(ellipse at top, #10B981 0%, var(--background-color) 50%);
+                opacity: var(--blur-opacity);
+            }
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Include Bootstrap CSS if you're not using it already -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.css"
+        integrity="sha512-3pIirOrwegjM6erE5gPSwkUzO+3cTjpnV9lexlNZqvupR64iZBnOOTiiLPb9M36zpMScbmUNIcHUqKD47M719g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Include jQuery if you're not using it already -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <!-- Include Toastr JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"
+        integrity="sha512-VEd+nq25CkR676O+pLBnDW09R7VQX9Mdiij052gVCp5yVH3jGtH70Ho/UUv4mJDsEdTvqRCFZg0NKGiojGnUCw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+
+
+    <div class="grid justify-content-md-center">
+        {% if messages %}
+        <div class="container">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% endif %} alert-dismissible fade show"
+                role="alert">
+                <strong>Hey!</strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <!-- Your existing HTML content -->
+        <div class="container" id="SelectContents">
+            <center>
+                <div class="card" style="width: 35rem; height: 20rem;">
+                    <div class="card-body mt-1">
+                        <h3><b>Download Uploaded Files</b></h3>
+                        <div class="row">
+                            <div class="col">
+                                <embed src="{{ merged_text_url }}" width="500" height="100" type="text/plain">
+                            </div>
+                        </div>
+                        <div class="row mt-5">
+                            <div class="col">
+                                <a href="{{ merged_text_url }}" download><button id="cover_text_download" class="btn btn-info"><i class="fa-solid fa-image"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Download Merged Text File</span></button></a>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-left">
+                            <a href="/"><button id="backSelectContents" class="btn btn-secondary"><i class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Home</span></button></a>
+                        </div>
+                    </div>
+                </div>
+            </center>
+        </div>
+    </div>
+
+    <label class="day-night">
+        <input type="checkbox" checked />
+        <div></div>
+    </label>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
