@@ -535,9 +535,9 @@
               <div class="col">
                 <button id="audiomergeBtn" class="btn btn-danger"><i
                     class="fa-solid fa-code-merge"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Merge</span></button>
-                <!-- <button id="audiounmergeBtn" class="btn btn-info"><i
+                <button id="audiounmergeBtn" class="btn btn-info"><i
                     class="fa-solid fa-link-slash"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
-                    class="text">Unmerge</span></button> -->
+                    class="text">Unmerge</span></button>
               </div>
             </div>
           </div>
@@ -671,26 +671,192 @@
 
 
 
+
     <!-- Unmerge Audio Form -->
     <div class="container" id="uploadAudioUnmerge" style="display: none;">
       <center>
-        <div class="card" style="width: 35rem; height: 15rem;">
-          <div class="card-body mb-2">
-            <form method="post" action="{% url 'upload_unmerge_audio' %}" enctype="multipart/form-data">
-              {% csrf_token %}
-              <h5><b>Upload Audio to Split:</b></h5>
-              <input type="file" name="audio_file" class="form-control" accept=".mp3">
-              <button class="btn btn-primary mt-2" type="submit" name="submit"><i class="fa-regular fa-upload"></i>
-                Upload</button>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <form id="uploadunmergeForm" enctype="multipart/form-data">
+              <h5><b>Upload Merged Audio to Unmerge:</b></h5>
+              <input type="file" name="audio_file" id="audioFile" class="form-control" accept=".mp3">
+              <button class="btn btn-primary mt-2" type="submit" name="submit" id="uploadButton"><i
+                  class="fa-solid fa-upload"></i>&nbsp;&nbsp;Upload</button>
             </form>
+            <p id="uploadMessage" style="display:none;">Please wait until unmerge...</p>
           </div>
-        </div>
-        <div class="card-footer text-left">
-          <button id="back_uploadAudioUnmerge" class="btn btn-secondary"><i
-              class="fa-solid fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          <div class="card-footer text-left">
+            <button id="back_uploadAudioUnmerge" class="btn btn-secondary"><i
+                class="fas fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Back</span></button>
+          </div>
         </div>
       </center>
     </div>
+
+
+    <!-- Download UnmergeMerge Audio -->
+    <div class="container" id="unmergedownloadaudio" style="display: none;">
+      <center>
+        <div class="card" style="width: 35rem;">
+          <div class="card-body">
+            <div class="row">
+              <div class="col">
+                <h3><b>Download Un Merge Audio:</b></h3>
+                <div class="row">
+                  <div class="col">
+                    <audio controls id="unmergedAudio_1" class="mb-3"></audio>
+                    <audio controls id="unmergedAudio_2" class="mb-3"></audio>
+                  </div>
+                </div>
+                <a class="btn btn-warning mt-2" id="unmergerdownloadLink_1" download><i
+                    class="fas fa-download"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Part 1</span></a>
+                <a class="btn btn-warning mt-2" id="unmergerdownloadLink_2" download><i
+                    class="fas fa-download"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text">Part 2</span></a>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-left">
+            <a href="/"><button class="btn btn-secondary"><i class="fas fa-backward"></i>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="text">Home</span></button></a>
+          </div>
+        </div>
+      </center>
+    </div>
+
+
+    <!-- Audio splitting start -->
+    <script>
+      document.getElementById('uploadunmergeForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var file = document.getElementById('audioFile').files[0];
+        if (!file) {
+          alert('Please select an audio file.');
+          return;
+        }
+
+        // Disable the upload button and show message
+        document.getElementById('uploadButton').disabled = true;
+        document.getElementById('uploadMessage').style.display = 'block';
+
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var audioData = event.target.result;
+          var audioContext = new AudioContext();
+
+          audioContext.decodeAudioData(audioData, function (buffer) {
+            var duration = buffer.duration;
+            var halfDuration = duration / 2;
+
+            var firstHalfBuffer = audioContext.createBuffer(buffer.numberOfChannels, Math.round(halfDuration * buffer.sampleRate), buffer.sampleRate);
+            var secondHalfBuffer = audioContext.createBuffer(buffer.numberOfChannels, Math.round(halfDuration * buffer.sampleRate), buffer.sampleRate);
+
+            for (var channel = 0; channel < buffer.numberOfChannels; channel++) {
+              var channelData = buffer.getChannelData(channel);
+              var firstHalfChannelData = firstHalfBuffer.getChannelData(channel);
+              var secondHalfChannelData = secondHalfBuffer.getChannelData(channel);
+
+              for (var i = 0; i < Math.round(halfDuration * buffer.sampleRate); i++) {
+                firstHalfChannelData[i] = channelData[i];
+                secondHalfChannelData[i] = channelData[i + Math.round(halfDuration * buffer.sampleRate)];
+              }
+            }
+
+            var firstHalfBlob = new Blob([bufferToWav(firstHalfBuffer)], { type: 'audio/wav' });
+            var firstHalfURL = URL.createObjectURL(firstHalfBlob);
+            document.getElementById('unmergedAudio_1').src = firstHalfURL;
+            document.getElementById('unmergerdownloadLink_1').href = firstHalfURL;
+
+            var secondHalfBlob = new Blob([bufferToWav(secondHalfBuffer)], { type: 'audio/wav' });
+            var secondHalfURL = URL.createObjectURL(secondHalfBlob);
+            document.getElementById('unmergedAudio_2').src = secondHalfURL;
+            document.getElementById('unmergerdownloadLink_2').href = secondHalfURL;
+
+            // Re-enable the upload button and hide message
+            document.getElementById('uploadButton').disabled = false;
+            document.getElementById('uploadMessage').style.display = 'none';
+
+            document.getElementById('uploadAudioUnmerge').style.display = 'none';
+            document.getElementById('unmergedownloadaudio').style.display = 'block';
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      function bufferToWav(buffer) {
+        var interleaved = interleave(buffer);
+        var dataview = encodeWAV(interleaved);
+        var audioBlob = new Blob([dataview], { type: 'audio/wav' });
+        return audioBlob;
+      }
+
+      function interleave(input) {
+        var channels = input.numberOfChannels;
+        var length = input.length * channels;
+        var result = new Float32Array(length);
+        var index = 0;
+        var inputIndex = 0;
+
+        for (var i = 0; i < input.length; i++) {
+          for (var channel = 0; channel < channels; channel++) {
+            result[index++] = input.getChannelData(channel)[i];
+          }
+        }
+        return result;
+      }
+
+      function floatTo16BitPCM(output, offset, input) {
+        for (var i = 0; i < input.length; i++, offset += 2) {
+          var s = Math.max(-1, Math.min(1, input[i]));
+          output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+      }
+
+      function writeString(view, offset, string) {
+        for (var i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      function encodeWAV(samples) {
+        var buffer = new ArrayBuffer(44 + samples.length * 2);
+        var view = new DataView(buffer);
+
+        /* RIFF identifier */
+        writeString(view, 0, 'RIFF');
+        /* file length */
+        view.setUint32(4, 36 + samples.length * 2, true);
+        /* RIFF type */
+        writeString(view, 8, 'WAVE');
+        /* format chunk identifier */
+        writeString(view, 12, 'fmt ');
+        /* format chunk length */
+        view.setUint32(16, 16, true);
+        /* sample format (raw) */
+        view.setUint16(20, 1, true);
+        /* channel count */
+        view.setUint16(22, 2, true);
+        /* sample rate */
+        view.setUint32(24, 44100, true);
+        /* byte rate (sample rate * block align) */
+        view.setUint32(28, 44100 * 2 * 2, true);
+        /* block align (channel count * bytes per sample) */
+        view.setUint16(32, 2 * 2, true);
+        /* bits per sample */
+        view.setUint16(34, 16, true);
+        /* data chunk identifier */
+        writeString(view, 36, 'data');
+        /* data chunk length */
+        view.setUint32(40, samples.length * 2, true);
+
+        floatTo16BitPCM(view, 44, samples);
+
+        return view;
+      }
+    </script>
+    <!-- Audio splittg end -->
+
+
 
   </div>
 
